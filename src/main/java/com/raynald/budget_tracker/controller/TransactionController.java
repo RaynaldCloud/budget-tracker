@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -34,12 +35,12 @@ public class TransactionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TransactionResponse create(@RequestBody TransactionRequest request) {
+    public TransactionResponse create(@Valid @RequestBody TransactionRequest request) {
         return transactionService.createTransaction(request);
     }
 
     @PutMapping("/{id}")
-    public TransactionResponse update(@PathVariable Long id, @RequestBody TransactionRequest request) {
+    public TransactionResponse update(@PathVariable Long id, @Valid @RequestBody TransactionRequest request) {
         return transactionService.updateTransaction(id, request);
     }
 

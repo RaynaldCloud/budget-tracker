@@ -6,6 +6,7 @@ import com.raynald.budget_tracker.service.CategoryService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -24,12 +25,12 @@ public class CategoryController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoryResponse create(@RequestBody CategoryRequest request) {
+    public CategoryResponse create(@Valid @RequestBody CategoryRequest request) {
         return categoryService.createCategory(request);
     }
 
     @PutMapping("/{id}")
-    public CategoryResponse rename(@PathVariable Long id, @RequestBody CategoryRequest request) {
+    public CategoryResponse rename(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
         return categoryService.renameCategory(id, request);
     }
 

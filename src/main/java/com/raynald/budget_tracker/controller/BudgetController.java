@@ -6,6 +6,7 @@ import com.raynald.budget_tracker.service.BudgetService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/budgets")
@@ -24,7 +25,7 @@ public class BudgetController {
     }
 
     @PutMapping
-    public BudgetResponse set(@RequestBody BudgetRequest request) {
+    public BudgetResponse set(@Valid @RequestBody BudgetRequest request) {
         return budgetService.setBudget(request);
     }
 
