@@ -6,6 +6,7 @@ Each user has their own account, authenticated with JWTs, and can only ever acce
 
 ## Features
 
+- **Web interface**: a simple single-page frontend (HTML and JavaScript) served by Spring Boot, for managing categories, transactions and budgets visually
 - **Accounts and authentication**: registration, login and stateless JWT authentication with Spring Security; passwords hashed with BCrypt
 - **Categories**: create, rename and delete spending and income categories
 - **Transactions**: record income and expenses, with filtering by date range and category
@@ -17,7 +18,7 @@ Each user has their own account, authenticated with JWTs, and can only ever acce
 
 ## Tech stack
 
-Java 21 · Spring Boot · Spring Web · Spring Data JPA (Hibernate) · Spring Security (OAuth2 Resource Server, JWT) · Bean Validation · MySQL · Maven · JUnit 5 · Mockito · AssertJ · H2 (tests)
+Java 21 · Spring Boot · Spring Web · Spring Data JPA (Hibernate) · Spring Security (OAuth2 Resource Server, JWT) · Bean Validation · MySQL · Maven · JUnit 5 · Mockito · AssertJ · H2 (tests) · HTML · JavaScript 
 
 ## Architecture
 
@@ -61,7 +62,8 @@ src/main/java/com/raynald/budget_tracker/
 ├── entity/        # JPA entities: User, Category, Transaction, Budget
 ├── dto/           # request and response records
 ├── security/      # Spring Security and JWT configuration
-└── exception/     # custom exceptions and the global error handler
+├── exception/     # custom exceptions and the global error handler
+└── src/main/resources/static/index.html   # web frontend
 src/test/java/...  # unit and integration tests
 docs/requirements.md
 ```
@@ -99,7 +101,7 @@ cd budget-tracker
 ./mvnw spring-boot:run
 ```
 
-The API starts at `http://localhost:8080`, and the tables are created automatically on first run.
+Open http://localhost:8080 to use the web interface. The API itself is available under `/api`, and the tables are created automatically on first run.
 
 ## Using the API
 
@@ -210,7 +212,7 @@ Tests use an in-memory H2 database, so they don't need MySQL or any environment 
 
 ## Limitations and future improvements
 
-- Add a web frontend (for example React with TypeScript) consuming this API
+- Rebuild the frontend in React with TypeScript
 - Use Testcontainers to run integration tests against real MySQL instead of H2
 - Manage schema changes with Flyway migrations instead of Hibernate's automatic updates
 - Add pagination to the transactions list
