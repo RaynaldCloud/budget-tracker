@@ -11,19 +11,23 @@ import com.raynald.budget_tracker.repository.TransactionRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.raynald.budget_tracker.repository.BudgetRepository;
 
 @Service
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final BudgetRepository budgetRepository;
     private final CurrentUserService currentUserService;
 
     public CategoryService(CategoryRepository categoryRepository,
                            TransactionRepository transactionRepository,
+                           BudgetRepository budgetRepository,
                            CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
+        this.budgetRepository = budgetRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -62,6 +66,9 @@ public class CategoryService {
         Category category = findOwnedCategory(id);
         if (transactionRepository.existsByCategory(category)) {
             throw new ConflictException("Category is used by existing transactions and can't be deleted");
+        }
+        if (budgetRepository.existsByCategory(category)) {
+            throw new ConflictException("Category has budgets and can't be deleted; delete its budgets first");
         }
         categoryRepository.delete(category);
     }
