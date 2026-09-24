@@ -38,6 +38,7 @@ public class SecurityConfig {
             // Don't create server-side sessions: every request must carry its own token
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated())

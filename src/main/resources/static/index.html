@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Budget Tracker</title>
+  <style>
+    :root { --bg:#f5f6f8; --card:#fff; --text:#1f2933; --muted:#6b7280; --border:#e5e7eb;
+            --accent:#0f766e; --danger:#b91c1c; --ok:#15803d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           background:var(--bg); color:var(--text); }
+    main { max-width:1000px; margin:0 auto; padding:24px 16px 48px; }
+    h1 { margin:0; font-size:1.5rem; }
+    h2 { margin:0 0 12px; font-size:1.05rem; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
+            padding:18px; margin-bottom:16px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
+    label { display:flex; flex-direction:column; gap:4px; font-size:.8rem; color:var(--muted); }
+    input, select, button { font:inherit; padding:8px 10px; border:1px solid var(--border); border-radius:6px; }
+    button { background:var(--accent); color:#fff; border:none; cursor:pointer; }
+    button.secondary { background:#e5e7eb; color:var(--text); }
+    button.link { background:none; color:var(--danger); padding:2px 6px; font-size:.85rem; }
+    .muted { color:var(--muted); font-size:.85rem; }
+    .hidden { display:none !important; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;
+             flex-wrap:wrap; gap:10px; }
+    .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+    .stat { background:var(--bg); border-radius:8px; padding:12px; }
+    .stat .value { font-size:1.3rem; font-weight:600; margin-top:4px; }
+    .bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin:6px 0 2px; }
+    .bar > div { height:100%; background:var(--accent); }
+    .bar.over > div { background:var(--danger); }
+    .budget-row { margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); }
+    th { font-size:.75rem; text-transform:uppercase; color:var(--muted); }
+    .expense { color:var(--danger); }
+    .income { color:var(--ok); }
+    .tabs { display:flex; gap:8px; margin:12px 0; }
+    .tabs button:not(.active) { background:#e5e7eb; color:var(--text); }
+    #message { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); padding:10px 16px;
+               border-radius:8px; color:#fff; max-width:90%; }
+    #message.error { background:var(--danger); }
+    #message.success { background:var(--ok); }
+    #log { font-family:ui-monospace, Menlo, monospace; font-size:.8rem; margin:0; padding-left:18px; }
+  </style>
+</head>
+<body>
+<main>
+
+  <!-- ============ LOGIN / SIGN-UP SCREEN ============ -->
+  <section id="auth-view" class="card" style="max-width:420px; margin:60px auto;">
+    <h1>Budget Tracker</h1>
+    <div class="tabs">
+      <button type="button" id="tab-login" class="active">Log in</button>
+      <button type="button" id="tab-register">Sign up</button>
+    </div>
+    <form id="auth-form">
+      <label id="name-field" class="hidden">Name <input id="auth-name"></label>
+      <label>Email <input id="auth-email" type="email" required></label>
+      <label style="margin-top:8px">Password <input id="auth-password" type="password" required></label>
+      <p class="muted">Passwords need at least 8 characters.</p>
+      <button type="submit" id="auth-submit">Log in</button>
+    </form>
+  </section>
+
+  <!-- ============ MAIN APP (after logging in) ============ -->
+  <section id="app-view" class="hidden">
+    <header>
+      <div><h1>Budget Tracker</h1><div class="muted" id="welcome"></div></div>
+      <div class="row">
+        <label>Month <input id="month" type="month"></label>
+        <button class="secondary" id="logout">Log out</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <h2>Monthly summary</h2>
+      <div class="stats">
+        <div class="stat"><div class="muted">Income</div><div class="value income" id="total-income"></div></div>
+        <div class="stat"><div class="muted">Expenses</div><div class="value expense" id="total-expense"></div></div>
+        <div class="stat"><div class="muted">Net</div><div class="value" id="net"></div></div>
+      </div>
+      <h2 style="margin-top:18px">Spending by category</h2>
+      <div id="budget-bars"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Add a transaction</h2>
+        <form id="tx-form">
+          <div class="row">
+            <label>Type
+              <select id="tx-type"><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select>
+            </label>
+            <label>Category <select id="tx-category"></select></label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label>Amount (S$) <input id="tx-amount" type="number" step="0.01" min="0.01" required></label>
+            <label>Date <input id="tx-date" type="date" required></label>
+          </div>
+          <label style="margin-top:8px">Note (optional) <input id="tx-note" maxlength="255"></label>
+          <p><button type="submit">Add transaction</button></p>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Categories</h2>
+        <form id="cat-form" class="row">
+          <label style="flex:1">New category <input id="cat-name" maxlength="50" required></label>
+          <button type="submit">Add</button>
+        </form>
+        <ul id="cat-list"></ul>
+
+        <h2>Set a budget for this month</h2>
+        <form id="budget-form" class="row">
+          <label>Category <select id="budget-category"></select></label>
+          <label>Limit (S$) <input id="budget-amount" type="number" step="0.01" min="0" required></label>
+          <button type="submit">Save</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Transactions this month</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr></thead>
+          <tbody id="tx-body"></tbody>
+        </table>
+      </div>
+      <p class="muted hidden" id="tx-empty">No transactions this month yet.</p>
+    </div>
+
+    <div class="card">
+      <h2>Behind the scenes</h2>
+      <p class="muted">Every action on this page sends a request to your Spring Boot backend. Newest first:</p>
+      <ul id="log"></ul>
+    </div>
+  </section>
+
+  <div id="message" class="hidden"></div>
+</main>
+
+<script>
+  // ---------- state and small helpers ----------
+  const state = { token: sessionStorage.getItem("token"), categories: [], mode: "login" };
+  const $ = id => document.getElementById(id);
+  const money = n => "S$" + Number(n).toFixed(2);
+  const pad = n => String(n).padStart(2, "0");
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+  function showMessage(text, type = "error") {
+    const box = $("message");
+    box.textContent = text;
+    box.className = type;
+    clearTimeout(showMessage.timer);
+    showMessage.timer = setTimeout(() => (box.className = "hidden"), 4000);
+  }
+
+  function logRequest(method, path, status) {
+    const item = document.createElement("li");
+    item.textContent = `${method} ${path} → ${status}`;
+    $("log").prepend(item);
+    while ($("log").children.length > 12) $("log").lastChild.remove();
+  }
+
+  // ---------- the one function that talks to the backend ----------
+  async function api(method, path, body) {
+    const headers = { "Content-Type": "application/json" };
+    if (state.token) headers.Authorization = "Bearer " + state.token;
+
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    logRequest(method, path, res.status);
+
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (res.status === 401 && state.token) {
+      logout();
+      throw new Error("Your session has expired. Please log in again.");
+    }
+    if (!res.ok) {
+      const details = data?.fieldErrors ? ": " + Object.values(data.fieldErrors).join(", ") : "";
+      throw new Error((data?.message || "Request failed") + details);
+    }
+    return data;
+  }
+
+  // Runs an action, shows success or error, then refreshes the page's data
+  async function run(action, successText) {
+    try {
+      await action();
+      if (successText) showMessage(successText, "success");
+      await loadDashboard();
+    } catch (err) {
+      showMessage(err.message);
+    }
+  }
+
+  function selectedMonth() {
+    const [year, month] = $("month").value.split("-").map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    return { year, month, from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${lastDay}` };
+  }
+
+  // ---------- loading and drawing data ----------
+  async function loadDashboard() {
+    const m = selectedMonth();
+    try {
+      const [categories, summary, transactions] = await Promise.all([
+        api("GET", "/api/categories"),
+        api("GET", `/api/summary?year=${m.year}&month=${m.month}`),
+        api("GET", `/api/transactions?from=${m.from}&to=${m.to}`),
+      ]);
+      state.categories = categories;
+      renderCategories();
+      renderSummary(summary);
+      renderTransactions(transactions);
+    } catch (err) {
+      showMessage(err.message);
+    }
+  }
+
+  function renderCategories() {
+    for (const id of ["tx-category", "budget-category"]) {
+      const select = $(id);
+      select.innerHTML = "";
+      for (const c of state.categories) select.add(new Option(c.name, c.id));
+    }
+    const list = $("cat-list");
+    list.innerHTML = "";
+    if (state.categories.length === 0) {
+      list.innerHTML = '<li class="muted">No categories yet. Add one, such as Food.</li>';
+    }
+    for (const c of state.categories) {
+      const li = document.createElement("li");
+      li.textContent = c.name + " ";
+      const del = document.createElement("button");
+      del.className = "link";
+      del.textContent = "Delete";
+      del.onclick = () => run(() => api("DELETE", `/api/categories/${c.id}`), "Category deleted");
+      li.append(del);
+      list.append(li);
+    }
+  }
+
+  function renderSummary(s) {
+    $("total-income").textContent = money(s.totalIncome);
+    $("total-expense").textContent = money(s.totalExpense);
+    $("net").textContent = money(s.net);
+
+    const box = $("budget-bars");
+    box.innerHTML = "";
+    if (s.categories.length === 0) {
+      box.innerHTML = '<p class="muted">No spending or budgets this month yet.</p>';
+      return;
+    }
+    for (const c of s.categories) {
+      const row = document.createElement("div");
+      row.className = "budget-row";
+      const title = document.createElement("div");
+      title.textContent = c.categoryName;
+      const detail = document.createElement("div");
+      detail.className = "muted";
+
+      if (c.budget === null) {
+        detail.textContent = `${money(c.spent)} spent · no budget set`;
+        row.append(title, detail);
+      } else {
+        const bar = document.createElement("div");
+        bar.className = "bar" + (c.overBudget ? " over" : "");
+        const fill = document.createElement("div");
+        fill.style.width = Math.min(c.percentUsed ?? 100, 100) + "%";
+        bar.append(fill);
+        detail.textContent = `${money(c.spent)} of ${money(c.budget)} (${c.percentUsed ?? "–"}%)` +
+          (c.overBudget ? ` · over by ${money(-c.remaining)}` : ` · ${money(c.remaining)} left`);
+        row.append(title, bar, detail);
+      }
+      box.append(row);
+    }
+  }
+
+  function renderTransactions(list) {
+    const body = $("tx-body");
+    body.innerHTML = "";
+    $("tx-empty").classList.toggle("hidden", list.length > 0);
+    for (const t of list) {
+      const tr = document.createElement("tr");
+      for (const text of [t.date, t.categoryName, t.note || ""]) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.append(td);
+      }
+      const amount = document.createElement("td");
+      amount.textContent = (t.type === "EXPENSE" ? "−" : "+") + money(t.amount);
+      amount.className = t.type === "EXPENSE" ? "expense" : "income";
+      const actions = document.createElement("td");
+      const del = document.createElement("button");
+      del.className = "link";
+      del.textContent = "Delete";
+      del.onclick = () => run(() => api("DELETE", `/api/transactions/${t.id}`), "Transaction deleted");
+      actions.append(del);
+      tr.append(amount, actions);
+      body.append(tr);
+    }
+  }
+
+  // ---------- forms ----------
+  $("tx-form").onsubmit = e => {
+    e.preventDefault();
+    if (state.categories.length === 0) return showMessage("Add a category first.");
+    run(async () => {
+      await api("POST", "/api/transactions", {
+        categoryId: Number($("tx-category").value),
+        type: $("tx-type").value,
+        amount: Number($("tx-amount").value),
+        date: $("tx-date").value,
+        note: $("tx-note").value || null,
+      });
+      $("tx-amount").value = "";
+      $("tx-note").value = "";
+    }, "Transaction added");
+  };
+
+  $("cat-form").onsubmit = e => {
+    e.preventDefault();
+    run(async () => {
+      await api("POST", "/api/categories", { name: $("cat-name").value });
+      $("cat-name").value = "";
+    }, "Category added");
+  };
+
+  $("budget-form").onsubmit = e => {
+    e.preventDefault();
+    if (state.categories.length === 0) return showMessage("Add a category first.");
+    const m = selectedMonth();
+    run(async () => {
+      await api("PUT", "/api/budgets", {
+        categoryId: Number($("budget-category").value),
+        year: m.year,
+        month: m.month,
+        amount: Number($("budget-amount").value),
+      });
+      $("budget-amount").value = "";
+    }, "Budget saved");
+  };
+
+  // ---------- logging in and out ----------
+  function setMode(mode) {
+    state.mode = mode;
+    $("tab-login").classList.toggle("active", mode === "login");
+    $("tab-register").classList.toggle("active", mode === "register");
+    $("name-field").classList.toggle("hidden", mode === "login");
+    $("auth-name").required = mode === "register";
+    $("auth-submit").textContent = mode === "login" ? "Log in" : "Create account";
+  }
+  $("tab-login").onclick = () => setMode("login");
+  $("tab-register").onclick = () => setMode("register");
+
+  $("auth-form").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("auth-email").value;
+    const password = $("auth-password").value;
+    try {
+      if (state.mode === "register") {
+        await api("POST", "/api/auth/register", { email, password, name: $("auth-name").value });
+      }
+      const { token } = await api("POST", "/api/auth/login", { email, password });
+      state.token = token;
+      sessionStorage.setItem("token", token);
+      await showApp();
+    } catch (err) {
+      showMessage(err.message);
+    }
+  };
+
+  async function showApp() {
+    const me = await api("GET", "/api/auth/me");
+    $("welcome").textContent = `Logged in as ${me.name}`;
+    $("auth-view").classList.add("hidden");
+    $("app-view").classList.remove("hidden");
+    await loadDashboard();
+  }
+
+  function logout() {
+    state.token = null;
+    sessionStorage.removeItem("token");
+    $("app-view").classList.add("hidden");
+    $("auth-view").classList.remove("hidden");
+  }
+
+  $("logout").onclick = logout;
+  $("month").onchange = loadDashboard;
+
+  // ---------- start ----------
+  $("month").value = todayIso.slice(0, 7);
+  $("tx-date").value = todayIso;
+  if (state.token) showApp().catch(logout);
+</script>
+</body>
+</html>
